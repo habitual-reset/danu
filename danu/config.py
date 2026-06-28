@@ -43,6 +43,11 @@ class Settings(BaseSettings):
         "https://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient"
     )
 
+    voice_tts_enabled: bool = True
+    voice_tts_model: str = "tts-1"
+    voice_tts_voice: str = "nova"
+    voice_tts_audio_dir: str = "./data/audio"
+
     def twilio_webhook_url_for(self, path: str) -> str:
         base = self.public_webhook_base_url.rstrip("/")
         if base:

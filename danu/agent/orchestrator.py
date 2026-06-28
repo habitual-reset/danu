@@ -14,6 +14,9 @@ from danu.db.repositories.task import TaskRepository
 from danu.memory.retrieve import MemoryRetriever
 from danu.memory.schemas import MemoryOp, MemoryOpType
 from danu.memory.task_extract import extract_task_ops
+from danu.reminders.extract import extract_reminder_requests
+from danu.reminders.schedule import ReminderScheduler
+from danu.security.phones import phone_for_user
 from danu.memory.store import MemoryStore
 from danu.onboarding.extract import extract_onboarding_ops
 from danu.onboarding.service import OnboardingService
@@ -128,6 +131,8 @@ class AgentOrchestrator:
                     channel=envelope.channel,
                 )
 
+        self._schedule_reminders(envelope)
+
         outbound = self.store.append_outbound(
             tenant_id=envelope.tenant_id,
             user_id=envelope.user_id,
@@ -187,6 +192,25 @@ class AgentOrchestrator:
             task_type="consolidate_memory",
             payload_json={"conversation_id": conversation_id},
         )
+
+    def _schedule_reminders(self, envelope: MessageEnvelope) -> list[str]:
+        phone = phone_for_user(envelope.user_id)
+        if not phone:
+            return []
+
+        scheduler = ReminderScheduler(self.session)
+        task_ids: list[str] = []
+        for reminder in extract_reminder_requests(envelope.body):
+            task_id = scheduler.schedule_sms_reminder(
+                tenant_id=envelope.tenant_id,
+                user_id=envelope.user_id,
+                conversation_id=envelope.conversation_id,
+                phone_number=phone,
+                reminder=reminder,
+                channel=envelope.channel,
+            )
+            task_ids.append(task_id)
+        return task_ids
 
     def _extract_memory_ops(self, user_message: str, llm_ops: list[dict]) -> list[MemoryOp]:
         ops: list[MemoryOp] = []

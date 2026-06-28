@@ -1,3 +1,4 @@
+from danu.agent.product_context import build_product_context_section
 from danu.channels.base import ChannelType
 from danu.memory.schemas import ContextPack
 from danu.onboarding.service import OnboardingState
@@ -16,17 +17,22 @@ def build_system_prompt(
     base = (
         f"You are a reliable personal assistant named {agent_name}. "
         "Use provided memory facts when relevant. "
-        "Be accurate. If the user asks you to remember something, acknowledge it clearly."
+        "Be accurate. If the user asks you to remember something, acknowledge it clearly. "
+        "When the user requests a reminder, confirm you scheduled an SMS text for that time. "
+        "SMS reminders are queued by the system; outbound delivery may wait on carrier approval. "
+        "Never claim push notifications or app alerts — only SMS from this assistant's number."
     )
+    product = build_product_context_section()
     if channel == "voice":
         return (
             base
             + " You are on a live phone call. "
             "Reply in 1-3 short spoken sentences only. "
             "No bullet points, lists, markdown, or URLs. "
-            "Sound natural, warm, and direct — like a helpful human on the phone."
+            "Sound natural, warm, and direct — like a helpful human on the phone.\n\n"
+            + product
         )
-    return base + " Be concise."
+    return base + " Be concise.\n\n" + product
 
 
 def _build_onboarding_system_prompt(*, channel: ChannelType, state: OnboardingState) -> str:

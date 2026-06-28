@@ -81,9 +81,17 @@ def build_incoming_call_twiml(
     return str(response)
 
 
-def build_gather_response_twiml(*, text: str, gather_action_url: str) -> str:
+def build_gather_response_twiml(
+    *,
+    text: str,
+    gather_action_url: str,
+    audio_url: str | None = None,
+) -> str:
     response = VoiceResponse()
-    response.say(format_voice_response(text), voice=POLLY_VOICE)
+    if audio_url:
+        response.play(audio_url)
+    else:
+        response.say(format_voice_response(text), voice=POLLY_VOICE)
     _append_gather(response, action_url=gather_action_url)
     response.say("Talk later.", voice=POLLY_VOICE)
     response.hangup()
@@ -98,9 +106,12 @@ def build_no_speech_twiml(*, gather_action_url: str) -> str:
     return str(response)
 
 
-def build_farewell_twiml(*, text: str) -> str:
+def build_farewell_twiml(*, text: str, audio_url: str | None = None) -> str:
     response = VoiceResponse()
-    response.say(format_voice_response(text), voice=POLLY_VOICE)
+    if audio_url:
+        response.play(audio_url)
+    else:
+        response.say(format_voice_response(text), voice=POLLY_VOICE)
     response.hangup()
     return str(response)
 

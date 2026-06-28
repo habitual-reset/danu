@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from danu.api.routes.audio import router as audio_router
 from danu.api.routes.health import router as health_router
 from danu.api.routes.twilio_sms import router as twilio_sms_router
 from danu.api.routes.twilio_voice import router as twilio_voice_router
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
     )
     app.state.settings = settings
     app.include_router(health_router)
+    app.include_router(audio_router)
     app.include_router(twilio_sms_router)
     app.include_router(twilio_voice_router)
     return app

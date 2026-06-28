@@ -105,6 +105,8 @@ def _clean_name(value: str) -> str | None:
     words = cleaned.split()
     if len(words) > 4:
         return None
+    if len(words) >= 2 and len({word.lower() for word in words}) == 1:
+        words = [words[0]]
     return " ".join(word.capitalize() for word in words)
 
 

@@ -23,6 +23,7 @@ from danu.db.repositories.conversation import ConversationRepository
 from danu.db.repositories.voice_hold import VoiceHoldRepository
 from danu.onboarding.service import OnboardingService
 from danu.usage.tracker import UsageTracker
+from danu.voice.tts import get_voice_tts
 from danu.voice.work_detector import (
     classify_work_type,
     estimate_seconds,
@@ -34,6 +35,21 @@ from danu.voice.work_detector import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks/twilio", tags=["twilio"])
+
+
+def _reply_twiml(*, text: str, gather_url: str, farewell: bool = False) -> str:
+    audio_url = None
+    tts = get_voice_tts()
+    result = tts.synthesize(text)
+    if result:
+        _, audio_url = result
+    if farewell:
+        return build_farewell_twiml(text=text, audio_url=audio_url)
+    return build_gather_response_twiml(
+        text=text,
+        gather_action_url=gather_url,
+        audio_url=audio_url,
+    )
 
 
 def _process_turn(
@@ -135,7 +151,7 @@ async def voice_gather(
             session.rollback()
             reply = "Talk soon."
         return Response(
-            content=build_farewell_twiml(text=reply),
+            content=_reply_twiml(text=reply, gather_url=gather_url, farewell=True),
             media_type="application/xml",
         )
 
@@ -194,7 +210,7 @@ async def voice_gather(
         reply = "Something went wrong. Please try again."
 
     return Response(
-        content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
+        content=_reply_twiml(text=reply, gather_url=gather_url),
         media_type="application/xml",
     )
 
@@ -217,17 +233,17 @@ async def voice_work(
             reply = latest.response_text
             if is_farewell(latest.speech_text):
                 return Response(
-                    content=build_farewell_twiml(text=reply),
+                    content=_reply_twiml(text=reply, gather_url=gather_url, farewell=True),
                     media_type="application/xml",
                 )
             return Response(
-                content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
+                content=_reply_twiml(text=reply, gather_url=gather_url),
                 media_type="application/xml",
             )
         return Response(
-            content=build_gather_response_twiml(
+            content=_reply_twiml(
                 text="Sorry, I lost track of that. What were you saying?",
-                gather_action_url=gather_url,
+                gather_url=gather_url,
             ),
             media_type="application/xml",
         )
@@ -269,12 +285,12 @@ async def voice_work(
 
     if is_farewell(job.speech_text):
         return Response(
-            content=build_farewell_twiml(text=reply),
+            content=_reply_twiml(text=reply, gather_url=gather_url, farewell=True),
             media_type="application/xml",
         )
 
     return Response(
-        content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
+        content=_reply_twiml(text=reply, gather_url=gather_url),
         media_type="application/xml",
     )
 
