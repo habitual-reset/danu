@@ -4,7 +4,7 @@ Use these values in **Twilio Trust Hub → Messaging → Campaigns** (or Custome
 
 > **Important:** Twilio must be able to open your policy links in a browser. If the GitHub repo is **private**, either make the repo public or host these files on a public URL (e.g. GitHub Pages, your domain).
 
-**Repository:** `github.com/habitual-reset/DANU`
+**Repository:** `github.com/habitual-reset/danu` (GitHub URL is lowercase)
 
 ---
 
@@ -14,14 +14,14 @@ Replace `main` with your default branch if different.
 
 | Field | URL |
 |-------|-----|
-| **Embedded link / Program website** | `https://github.com/habitual-reset/DANU/blob/main/COMPLIANCE.md` |
-| **Privacy Policy** | `https://github.com/habitual-reset/DANU/blob/main/PRIVACY.md` |
-| **Terms and Conditions** | `https://github.com/habitual-reset/DANU/blob/main/TERMS.md` |
+| **Embedded link / Program website** | `https://github.com/habitual-reset/danu/blob/main/COMPLIANCE.md` |
+| **Privacy Policy** | `https://github.com/habitual-reset/danu/blob/main/PRIVACY.md` |
+| **Terms and Conditions** | `https://github.com/habitual-reset/danu/blob/main/TERMS.md` |
 
 Alternate raw URLs (if Twilio prefers plain text):
 
-- Privacy: `https://raw.githubusercontent.com/habitual-reset/DANU/main/PRIVACY.md`
-- Terms: `https://raw.githubusercontent.com/habitual-reset/DANU/main/TERMS.md`
+- Privacy: `https://raw.githubusercontent.com/habitual-reset/danu/main/PRIVACY.md`
+- Terms: `https://raw.githubusercontent.com/habitual-reset/danu/main/TERMS.md`
 
 ---
 

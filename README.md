@@ -58,7 +58,7 @@ Public policy documents for carrier registration:
 
 **Contact:** journey@habitualreset.com
 
-After pushing to `github.com/habitual-reset/DANU`, use the URLs in `TWILIO_CAMPAIGN.md` for Trust Hub registration.
+After pushing to `github.com/habitual-reset/danu`, use the URLs in `TWILIO_CAMPAIGN.md` for Trust Hub registration.
 
 ## Project Layout
 

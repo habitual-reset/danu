@@ -10,7 +10,7 @@ from danu.security.twilio_verify import compute_twilio_signature
 @pytest.fixture()
 def sms_client(session, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "sqlite://")
-    monkeypatch.setenv("ALLOWLIST_PHONES", "+18143273565")
+    monkeypatch.setenv("ALLOWLIST_PHONES", "+15555550100")
     monkeypatch.setenv("TWILIO_AUTH_TOKEN", "")
     get_settings.cache_clear()
 
@@ -62,8 +62,8 @@ def test_inbound_sms_returns_twiml_and_persists_events(sms_client):
     response = _post_sms(
         sms_client,
         {
-            "From": "+18143273565",
-            "To": "+15551234567",
+            "From": "+15555550100",
+            "To": "+15555550200",
             "Body": "What's up?",
             "MessageSid": "SM001",
             "AccountSid": "AC001",
@@ -81,7 +81,7 @@ def test_inbound_sms_rejects_unknown_sender(sms_client):
         sms_client,
         {
             "From": "+19999999999",
-            "To": "+15551234567",
+            "To": "+15555550200",
             "Body": "Hello",
             "MessageSid": "SM002",
         },
@@ -95,8 +95,8 @@ def test_inbound_sms_validates_signature_when_auth_token_set(sms_client, monkeyp
     get_settings.cache_clear()
 
     data = {
-        "From": "+18143273565",
-        "To": "+15551234567",
+        "From": "+15555550100",
+        "To": "+15555550200",
         "Body": "Signed message",
         "MessageSid": "SM003",
     }
@@ -114,8 +114,8 @@ def test_inbound_sms_handles_empty_body(sms_client):
     response = _post_sms(
         sms_client,
         {
-            "From": "+18143273565",
-            "To": "+15551234567",
+            "From": "+15555550100",
+            "To": "+15555550200",
             "Body": "",
             "MessageSid": "SM004",
         },

@@ -4,13 +4,13 @@ from danu.channels.sms import build_twiml_response, format_sms_response, parse_t
 def test_parse_twilio_sms_extracts_fields():
     parsed = parse_twilio_sms(
         {
-            "From": "+18143273565",
-            "To": "+15551234567",
+            "From": "+15555550100",
+            "To": "+15555550200",
             "Body": "Hello there",
             "MessageSid": "SM123",
         }
     )
-    assert parsed["from_number"] == "+18143273565"
+    assert parsed["from_number"] == "+15555550100"
     assert parsed["body"] == "Hello there"
     assert parsed["message_sid"] == "SM123"
 
