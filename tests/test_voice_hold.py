@@ -18,6 +18,10 @@ def test_needs_hold_for_task_phrases():
         "Mostly I want help staying organized and remembering things around the house",
         onboarding_complete=False,
     )
+    assert not needs_hold(
+        "Can you tell me what tasks I have to do today.",
+        onboarding_complete=True,
+    )
 
 
 def test_task_extract_fast_tracks_open_task():

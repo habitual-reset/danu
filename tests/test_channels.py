@@ -56,6 +56,7 @@ def test_gather_response_twiml_keeps_silent_gather():
     )
     assert "Got it." in twiml
     assert "Anything else" not in twiml
+    assert "Talk later" not in twiml
 
 
 def test_farewell_twiml_hangs_up():

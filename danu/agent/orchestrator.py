@@ -105,8 +105,7 @@ class AgentOrchestrator:
         )
 
         memory_ops = self._extract_memory_ops(envelope.body, llm_response.memory_ops)
-        if in_onboarding:
-            memory_ops.extend(extract_onboarding_ops(onboarding_state, envelope.body))
+        memory_ops.extend(extract_onboarding_ops(onboarding_state, envelope.body))
         memory_ops.extend(extract_task_ops(envelope.body))
 
         if memory_ops:

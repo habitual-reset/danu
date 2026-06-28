@@ -37,12 +37,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks/twilio", tags=["twilio"])
 
 
+def _tts_audio_url(text: str) -> str | None:
+    result = get_voice_tts().synthesize(text)
+    return result[1] if result else None
+
+
 def _reply_twiml(*, text: str, gather_url: str, farewell: bool = False) -> str:
-    audio_url = None
-    tts = get_voice_tts()
-    result = tts.synthesize(text)
-    if result:
-        _, audio_url = result
+    audio_url = _tts_audio_url(text)
     if farewell:
         return build_farewell_twiml(text=text, audio_url=audio_url)
     return build_gather_response_twiml(
@@ -101,6 +102,7 @@ async def incoming_voice(
             gather_action_url=gather_url,
             status_callback_url=status_url,
             greeting=greeting,
+            greeting_audio_url=_tts_audio_url(greeting),
         ),
         media_type="application/xml",
     )
@@ -187,6 +189,7 @@ async def voice_gather(
                 work_url=work_url,
                 music_loops=loops,
                 pause_seconds=estimated if not settings.voice_hold_music_url else 0,
+                message_audio_url=_tts_audio_url(message),
             ),
             media_type="application/xml",
         )
@@ -251,11 +254,13 @@ async def voice_work(
     if job.status == "processing":
         onboarding = OnboardingService(session)
         state = onboarding.load_state(tenant_id=job.tenant_id, user_id=job.user_id)
+        still_msg = still_working_message(agent_name=state.display_agent_name)
         return Response(
             content=build_still_working_twiml(
-                message=still_working_message(agent_name=state.display_agent_name),
+                message=still_msg,
                 music_url=settings.voice_hold_music_url,
                 work_url=work_url,
+                message_audio_url=_tts_audio_url(still_msg),
             ),
             media_type="application/xml",
         )

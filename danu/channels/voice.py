@@ -68,15 +68,19 @@ def build_incoming_call_twiml(
     gather_action_url: str,
     status_callback_url: str | None = None,
     greeting: str = DEFAULT_GREETING,
+    greeting_audio_url: str | None = None,
 ) -> str:
     kwargs = {}
     if status_callback_url:
         kwargs["status_callback"] = status_callback_url
         kwargs["status_callback_event"] = "completed"
     response = VoiceResponse(**kwargs)
-    response.say(greeting, voice=POLLY_VOICE)
+    if greeting_audio_url:
+        response.play(greeting_audio_url)
+    else:
+        response.say(greeting, voice=POLLY_VOICE)
     _append_gather(response, action_url=gather_action_url)
-    response.say("Didn't catch that. Bye.", voice=POLLY_VOICE)
+    response.pause(length=1)
     response.hangup()
     return str(response)
 
@@ -93,7 +97,7 @@ def build_gather_response_twiml(
     else:
         response.say(format_voice_response(text), voice=POLLY_VOICE)
     _append_gather(response, action_url=gather_action_url)
-    response.say("Talk later.", voice=POLLY_VOICE)
+    response.pause(length=1)
     response.hangup()
     return str(response)
 
@@ -149,9 +153,13 @@ def build_hold_twiml(
     work_url: str,
     music_loops: int = 3,
     pause_seconds: int = 0,
+    message_audio_url: str | None = None,
 ) -> str:
     response = VoiceResponse()
-    response.say(message, voice=POLLY_VOICE)
+    if message_audio_url:
+        response.play(message_audio_url)
+    else:
+        response.say(message, voice=POLLY_VOICE)
     if music_url:
         response.play(music_url, loop=max(1, min(music_loops, 10)))
     elif pause_seconds > 0:
@@ -165,9 +173,13 @@ def build_still_working_twiml(
     message: str,
     music_url: str,
     work_url: str,
+    message_audio_url: str | None = None,
 ) -> str:
     response = VoiceResponse()
-    response.say(message, voice=POLLY_VOICE)
+    if message_audio_url:
+        response.play(message_audio_url)
+    else:
+        response.say(message, voice=POLLY_VOICE)
     response.play(music_url, loop=2)
     response.redirect(work_url, method="POST")
     return str(response)

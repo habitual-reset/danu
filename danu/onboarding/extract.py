@@ -41,8 +41,8 @@ def extract_onboarding_ops(state: OnboardingState, user_message: str) -> list[Me
             ops.append(_profile_op("user_name", name))
             return ops
 
-    if not state.agent_name:
-        agent = _extract_agent_name(text, lowered)
+    if not state.agent_name or _is_agent_name_correction(lowered):
+        agent = _extract_agent_name(text, lowered) or _extract_name_correction(text, lowered)
         if agent:
             ops.append(_profile_op("agent_name", agent))
             return ops
@@ -108,6 +108,28 @@ def _clean_name(value: str) -> str | None:
     if len(words) >= 2 and len({word.lower() for word in words}) == 1:
         words = [words[0]]
     return " ".join(word.capitalize() for word in words)
+
+
+def _is_agent_name_correction(lowered: str) -> bool:
+    return any(
+        phrase in lowered
+        for phrase in (
+            "update your name",
+            "just sid",
+            "it's just",
+            "it is just",
+            "call you",
+            "not sid, sid",
+        )
+    )
+
+
+def _extract_name_correction(text: str, lowered: str) -> str | None:
+    for prefix in ("it's just", "it is just", "just"):
+        match = re.search(rf"{prefix}\s+(.+)", lowered)
+        if match:
+            return _clean_name(text[match.start(1) : match.end(1)])
+    return None
 
 
 def _looks_like_question(lowered: str) -> bool:

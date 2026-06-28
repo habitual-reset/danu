@@ -50,6 +50,9 @@ def needs_hold(
     if lowered in _SHORT_ACKS or len(lowered.split()) <= 4:
         return False
 
+    if _is_retrieval_question(lowered):
+        return False
+
     if not onboarding_complete:
         return len(text.split()) >= 8
 
@@ -57,6 +60,21 @@ def needs_hold(
         return True
 
     return len(text.split()) >= min_words_for_hold
+
+
+def _is_retrieval_question(lowered: str) -> bool:
+    prefixes = (
+        "what tasks",
+        "what do i have",
+        "can you tell me",
+        "do you know",
+        "what did i",
+        "remind me what",
+        "list my",
+    )
+    return lowered.startswith(prefixes) or lowered.endswith("?") and any(
+        p in lowered for p in ("what ", "tell me", "do you know", "can you")
+    )
 
 
 def classify_work_type(speech: str) -> str:
