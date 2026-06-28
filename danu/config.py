@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     voice_hold_enabled: bool = True
     voice_hold_music_url: str = (
-        "http://com.twilio.sounds.music.s3.amazonaws.com/a90_stock.mp3"
+        "https://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient"
     )
 
     def twilio_webhook_url_for(self, path: str) -> str:

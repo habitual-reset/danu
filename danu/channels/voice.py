@@ -137,10 +137,14 @@ def build_hold_twiml(
     music_url: str,
     work_url: str,
     music_loops: int = 3,
+    pause_seconds: int = 0,
 ) -> str:
     response = VoiceResponse()
     response.say(message, voice=POLLY_VOICE)
-    response.play(music_url, loop=max(1, min(music_loops, 10)))
+    if music_url:
+        response.play(music_url, loop=max(1, min(music_loops, 10)))
+    elif pause_seconds > 0:
+        response.pause(length=min(pause_seconds, 10))
     response.redirect(work_url, method="POST")
     return str(response)
 

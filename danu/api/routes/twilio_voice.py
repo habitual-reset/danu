@@ -169,6 +169,7 @@ async def voice_gather(
                 music_url=settings.voice_hold_music_url,
                 work_url=work_url,
                 music_loops=loops,
+                pause_seconds=estimated if not settings.voice_hold_music_url else 0,
             ),
             media_type="application/xml",
         )
@@ -197,7 +198,7 @@ async def voice_gather(
     )
 
 
-@router.post("/voice/work")
+@router.api_route("/voice/work", methods=["GET", "POST"])
 async def voice_work(
     voice: TwilioVoiceContext = Depends(get_twilio_voice_context),
     session: Session = Depends(get_db),
@@ -243,6 +244,12 @@ async def voice_work(
         )
 
     holds.mark_processing(job)
+    logger.info(
+        "Processing hold job %s for call %s: %s",
+        job.id,
+        call_sid,
+        job.speech_text[:80],
+    )
 
     try:
         reply = _process_turn(
@@ -300,6 +307,12 @@ async def voice_status(
         conversation_id=conversation.id,
         call_sid=call_sid,
     )
+
+    holds = VoiceHoldRepository(session)
+    stale_job = holds.get_active_for_call(call_sid)
+    if stale_job is not None:
+        holds.mark_failed(stale_job, response_text="Call ended before hold work completed.")
+        logger.warning("Hold job %s orphaned on hangup for call %s", stale_job.id, call_sid)
 
     orchestrator = AgentOrchestrator(session)
     orchestrator.close_conversation(conversation.id)

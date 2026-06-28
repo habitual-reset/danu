@@ -58,6 +58,7 @@ def test_hold_twiml_includes_music_and_redirect():
     )
     assert "Give me five seconds." in twiml
     assert "http://example.com/hold.mp3" in twiml
+    assert 'method="POST"' in twiml
     assert "/webhooks/twilio/voice/work" in twiml
 
 
