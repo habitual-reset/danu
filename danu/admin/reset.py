@@ -15,6 +15,26 @@ from danu.db.models.usage_event import UsageEvent
 from danu.db.models.voice_hold_job import VoiceHoldJob
 
 
+def reset_onboarding_experience(
+    session: Session,
+    *,
+    tenant_id: str,
+    user_id: str,
+    keep_usage: bool = False,
+) -> dict[str, int]:
+    """Wipe user runtime data so the next call is a fresh onboarding experience.
+
+    Clears profile (name, agent name, onboarding_completed), memory, conversations,
+    and hold jobs. Schema, code, and allowlist are untouched.
+    """
+    return reset_user_data(
+        session,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        keep_usage=keep_usage,
+    )
+
+
 def reset_user_data(
     session: Session,
     *,

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Wipe a user's memory and conversations for fresh onboarding test runs."""
+"""Reset a user's onboarding experience for fresh voice test calls.
+
+Clears profile, memory, conversations, and hold state. Code and DB schema stay intact.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 
-from danu.admin.reset import reset_user_data
+from danu.admin.reset import reset_onboarding_experience
 from danu.config import get_settings
 from danu.db.base import get_session_factory
 
@@ -44,7 +47,7 @@ def main() -> None:
 
     session = get_session_factory()()
     try:
-        counts = reset_user_data(
+        counts = reset_onboarding_experience(
             session,
             tenant_id=args.tenant_id,
             user_id=args.user_id,

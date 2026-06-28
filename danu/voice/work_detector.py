@@ -46,11 +46,12 @@ def needs_hold(
         return False
 
     lowered = text.lower().rstrip(".!?")
-    if not onboarding_complete:
+
+    if lowered in _SHORT_ACKS or len(lowered.split()) <= 4:
         return False
 
-    if lowered in _SHORT_ACKS or len(lowered.split()) <= 3:
-        return False
+    if not onboarding_complete:
+        return len(text.split()) >= 8
 
     if any(keyword in lowered for keyword in _TASK_KEYWORDS):
         return True
@@ -77,8 +78,19 @@ def estimate_seconds(speech: str, *, work_type: str) -> int:
     return min(base, 15)
 
 
-def hold_message(*, work_type: str, estimated_seconds: int, agent_name: str = "DANU") -> str:
+def hold_message(
+    *,
+    work_type: str,
+    estimated_seconds: int,
+    agent_name: str = "DANU",
+    onboarding: bool = False,
+) -> str:
     seconds = max(estimated_seconds, 3)
+    if onboarding:
+        return (
+            f"Thanks. Give me about {seconds} seconds — "
+            f"I want to make sure I get this right."
+        )
     if work_type == "task_memory":
         return (
             f"Got it. Give me about {seconds} seconds — "

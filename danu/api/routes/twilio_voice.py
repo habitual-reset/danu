@@ -161,6 +161,7 @@ async def voice_gather(
             work_type=work_type,
             estimated_seconds=estimated,
             agent_name=state.display_agent_name,
+            onboarding=not state.completed,
         )
         loops = max(1, estimated // 3)
         return Response(

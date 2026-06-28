@@ -14,6 +14,10 @@ def test_needs_hold_for_task_phrases():
     )
     assert not needs_hold("okay", onboarding_complete=True)
     assert not needs_hold("My name is Matt", onboarding_complete=False)
+    assert needs_hold(
+        "Mostly I want help staying organized and remembering things around the house",
+        onboarding_complete=False,
+    )
 
 
 def test_task_extract_fast_tracks_open_task():
