@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     memory_semantic_top_k: int = 10
     sms_conversation_idle_minutes: int = 30
 
+    voice_hold_enabled: bool = True
+    voice_hold_music_url: str = (
+        "http://com.twilio.sounds.music.s3.amazonaws.com/a90_stock.mp3"
+    )
+
     def twilio_webhook_url_for(self, path: str) -> str:
         base = self.public_webhook_base_url.rstrip("/")
         if base:

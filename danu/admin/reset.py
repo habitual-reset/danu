@@ -12,6 +12,7 @@ from danu.db.models.memory_graph import MemoryEntity, MemoryRelation
 from danu.db.models.message import Message
 from danu.db.models.task import Task
 from danu.db.models.usage_event import UsageEvent
+from danu.db.models.voice_hold_job import VoiceHoldJob
 
 
 def reset_user_data(
@@ -34,6 +35,7 @@ def reset_user_data(
         (Event, "events"),
         (Task, "tasks"),
         (Conversation, "conversations"),
+        (VoiceHoldJob, "voice_hold_jobs"),
     ]
     if not keep_usage:
         tables.append((UsageEvent, "usage_events"))

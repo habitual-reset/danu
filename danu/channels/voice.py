@@ -11,7 +11,8 @@ POLLY_VOICE = "Polly.Joanna-Neural"
 GATHER_KWARGS = {
     "input": "speech",
     "method": "POST",
-    "speech_timeout": "auto",
+    "speech_timeout": "5",
+    "timeout": "15",
     "language": "en-US",
     "speech_model": "phone_call",
 }
@@ -128,3 +129,30 @@ def is_farewell(text: str) -> bool:
     if not lowered:
         return False
     return any(phrase in lowered for phrase in _FAREWELL_PHRASES)
+
+
+def build_hold_twiml(
+    *,
+    message: str,
+    music_url: str,
+    work_url: str,
+    music_loops: int = 3,
+) -> str:
+    response = VoiceResponse()
+    response.say(message, voice=POLLY_VOICE)
+    response.play(music_url, loop=max(1, min(music_loops, 10)))
+    response.redirect(work_url, method="POST")
+    return str(response)
+
+
+def build_still_working_twiml(
+    *,
+    message: str,
+    music_url: str,
+    work_url: str,
+) -> str:
+    response = VoiceResponse()
+    response.say(message, voice=POLLY_VOICE)
+    response.play(music_url, loop=2)
+    response.redirect(work_url, method="POST")
+    return str(response)

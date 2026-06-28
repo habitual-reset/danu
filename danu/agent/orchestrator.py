@@ -13,6 +13,7 @@ from danu.db.repositories.conversation import ConversationRepository
 from danu.db.repositories.task import TaskRepository
 from danu.memory.retrieve import MemoryRetriever
 from danu.memory.schemas import MemoryOp, MemoryOpType
+from danu.memory.task_extract import extract_task_ops
 from danu.memory.store import MemoryStore
 from danu.onboarding.extract import extract_onboarding_ops
 from danu.onboarding.service import OnboardingService
@@ -103,6 +104,7 @@ class AgentOrchestrator:
         memory_ops = self._extract_memory_ops(envelope.body, llm_response.memory_ops)
         if in_onboarding:
             memory_ops.extend(extract_onboarding_ops(onboarding_state, envelope.body))
+        memory_ops.extend(extract_task_ops(envelope.body))
 
         if memory_ops:
             self.store.stage_memory_ops(

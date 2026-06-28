@@ -10,20 +10,52 @@ from danu.api.deps import TwilioVoiceContext, get_app_settings, get_db, get_twil
 from danu.channels.voice import (
     build_farewell_twiml,
     build_gather_response_twiml,
+    build_hold_twiml,
     build_incoming_call_twiml,
     build_no_speech_twiml,
+    build_still_working_twiml,
     build_voice_envelope,
     is_farewell,
     parse_twilio_voice,
 )
-from danu.onboarding.service import OnboardingService
 from danu.config import Settings
 from danu.db.repositories.conversation import ConversationRepository
+from danu.db.repositories.voice_hold import VoiceHoldRepository
+from danu.onboarding.service import OnboardingService
 from danu.usage.tracker import UsageTracker
+from danu.voice.work_detector import (
+    classify_work_type,
+    estimate_seconds,
+    hold_message,
+    needs_hold,
+    still_working_message,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks/twilio", tags=["twilio"])
+
+
+def _process_turn(
+    *,
+    session: Session,
+    settings: Settings,
+    voice: TwilioVoiceContext,
+    conversation_id: str,
+    speech_text: str,
+    raw_payload: dict,
+) -> str:
+    orchestrator = AgentOrchestrator(session)
+    envelope = build_voice_envelope(
+        tenant_id=settings.default_tenant_id,
+        user_id=voice.user_id,
+        conversation_id=conversation_id,
+        body=speech_text,
+        parsed=parse_twilio_voice(raw_payload),
+        raw_payload=raw_payload,
+    )
+    result = orchestrator.handle_turn(envelope)
+    return result.response_text
 
 
 @router.post("/voice")
@@ -66,6 +98,7 @@ async def voice_gather(
 ) -> Response:
     parsed = parse_twilio_voice(voice.params)
     gather_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/gather")
+    work_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/work")
 
     if not parsed["speech_result"]:
         return Response(
@@ -81,18 +114,74 @@ async def voice_gather(
         correlation_id=parsed["call_sid"],
     )
 
-    envelope = build_voice_envelope(
+    onboarding = OnboardingService(session)
+    state = onboarding.load_state(
         tenant_id=settings.default_tenant_id,
         user_id=voice.user_id,
-        conversation_id=conversation_id,
-        body=parsed["speech_result"],
-        parsed=parsed,
-        raw_payload=voice.params,
     )
 
+    if is_farewell(parsed["speech_result"]):
+        try:
+            reply = _process_turn(
+                session=session,
+                settings=settings,
+                voice=voice,
+                conversation_id=conversation_id,
+                speech_text=parsed["speech_result"],
+                raw_payload=voice.params,
+            )
+        except Exception:
+            logger.exception("Farewell turn failed")
+            session.rollback()
+            reply = "Talk soon."
+        return Response(
+            content=build_farewell_twiml(text=reply),
+            media_type="application/xml",
+        )
+
+    use_hold = (
+        settings.voice_hold_enabled
+        and needs_hold(parsed["speech_result"], onboarding_complete=state.completed)
+    )
+
+    if use_hold:
+        work_type = classify_work_type(parsed["speech_result"])
+        estimated = estimate_seconds(parsed["speech_result"], work_type=work_type)
+        holds = VoiceHoldRepository(session)
+        holds.create(
+            tenant_id=settings.default_tenant_id,
+            user_id=voice.user_id,
+            conversation_id=conversation_id,
+            call_sid=parsed["call_sid"],
+            speech_text=parsed["speech_result"],
+            work_type=work_type,
+            estimated_seconds=estimated,
+        )
+        message = hold_message(
+            work_type=work_type,
+            estimated_seconds=estimated,
+            agent_name=state.display_agent_name,
+        )
+        loops = max(1, estimated // 3)
+        return Response(
+            content=build_hold_twiml(
+                message=message,
+                music_url=settings.voice_hold_music_url,
+                work_url=work_url,
+                music_loops=loops,
+            ),
+            media_type="application/xml",
+        )
+
     try:
-        result = orchestrator.handle_turn(envelope)
-        reply = result.response_text
+        reply = _process_turn(
+            session=session,
+            settings=settings,
+            voice=voice,
+            conversation_id=conversation_id,
+            speech_text=parsed["speech_result"],
+            raw_payload=voice.params,
+        )
     except Exception:
         logger.exception(
             "Voice turn failed for user=%s conversation=%s",
@@ -102,7 +191,75 @@ async def voice_gather(
         session.rollback()
         reply = "Something went wrong. Please try again."
 
-    if is_farewell(parsed["speech_result"]):
+    return Response(
+        content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
+        media_type="application/xml",
+    )
+
+
+@router.post("/voice/work")
+async def voice_work(
+    voice: TwilioVoiceContext = Depends(get_twilio_voice_context),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> Response:
+    call_sid = voice.params.get("CallSid", "").strip()
+    gather_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/gather")
+    work_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/work")
+
+    holds = VoiceHoldRepository(session)
+    job = holds.get_active_for_call(call_sid)
+    if job is None:
+        latest = holds.get_latest_for_call(call_sid)
+        if latest and latest.status == "done" and latest.response_text:
+            reply = latest.response_text
+            if is_farewell(latest.speech_text):
+                return Response(
+                    content=build_farewell_twiml(text=reply),
+                    media_type="application/xml",
+                )
+            return Response(
+                content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
+                media_type="application/xml",
+            )
+        return Response(
+            content=build_gather_response_twiml(
+                text="Sorry, I lost track of that. What were you saying?",
+                gather_action_url=gather_url,
+            ),
+            media_type="application/xml",
+        )
+
+    if job.status == "processing":
+        onboarding = OnboardingService(session)
+        state = onboarding.load_state(tenant_id=job.tenant_id, user_id=job.user_id)
+        return Response(
+            content=build_still_working_twiml(
+                message=still_working_message(agent_name=state.display_agent_name),
+                music_url=settings.voice_hold_music_url,
+                work_url=work_url,
+            ),
+            media_type="application/xml",
+        )
+
+    holds.mark_processing(job)
+
+    try:
+        reply = _process_turn(
+            session=session,
+            settings=settings,
+            voice=voice,
+            conversation_id=job.conversation_id,
+            speech_text=job.speech_text,
+            raw_payload=voice.params,
+        )
+        holds.mark_done(job, response_text=reply)
+    except Exception:
+        logger.exception("Hold work failed for call=%s job=%s", call_sid, job.id)
+        holds.mark_failed(job, response_text="Something went wrong. Please try again.")
+        reply = "Something went wrong. Please try again."
+
+    if is_farewell(job.speech_text):
         return Response(
             content=build_farewell_twiml(text=reply),
             media_type="application/xml",
