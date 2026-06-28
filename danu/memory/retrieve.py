@@ -15,6 +15,7 @@ class MemoryRetriever:
     """Read path: assemble a token-budgeted context pack with provenance."""
 
     INSTRUCTION_CATEGORY = "instruction"
+    PROFILE_CATEGORY = "profile"
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -40,7 +41,13 @@ class MemoryRetriever:
             category=self.INSTRUCTION_CATEGORY,
             limit=5,
         )
-        system_facts = [self._to_fact(item) for item in system_items]
+        profile_items = self.memory.list_current_items(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            category=self.PROFILE_CATEGORY,
+            limit=10,
+        )
+        system_facts = [self._to_fact(item) for item in profile_items + system_items]
 
         keyword_hits = self.memory.search_items_by_keyword(
             tenant_id=tenant_id,

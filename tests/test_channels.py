@@ -1,5 +1,6 @@
 from danu.channels.sms import build_twiml_response, format_sms_response, parse_twilio_sms
 from danu.channels.voice import (
+    build_farewell_twiml,
     build_gather_response_twiml,
     build_incoming_call_twiml,
     format_voice_response,
@@ -55,3 +56,9 @@ def test_gather_response_twiml_keeps_silent_gather():
     )
     assert "Got it." in twiml
     assert "Anything else" not in twiml
+
+
+def test_farewell_twiml_hangs_up():
+    twiml = build_farewell_twiml(text="Talk soon!")
+    assert "Talk soon!" in twiml
+    assert "<Hangup" in twiml

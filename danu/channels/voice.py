@@ -59,13 +59,21 @@ def _append_gather(response: VoiceResponse, *, action_url: str) -> None:
     response.append(gather)
 
 
-def build_incoming_call_twiml(*, gather_action_url: str, status_callback_url: str | None = None) -> str:
+DEFAULT_GREETING = "Hey, it's DANU. What's up?"
+
+
+def build_incoming_call_twiml(
+    *,
+    gather_action_url: str,
+    status_callback_url: str | None = None,
+    greeting: str = DEFAULT_GREETING,
+) -> str:
     kwargs = {}
     if status_callback_url:
         kwargs["status_callback"] = status_callback_url
         kwargs["status_callback_event"] = "completed"
     response = VoiceResponse(**kwargs)
-    response.say("Hey, it's DANU. What's up?", voice=POLLY_VOICE)
+    response.say(greeting, voice=POLLY_VOICE)
     _append_gather(response, action_url=gather_action_url)
     response.say("Didn't catch that. Bye.", voice=POLLY_VOICE)
     response.hangup()
@@ -87,3 +95,36 @@ def build_no_speech_twiml(*, gather_action_url: str) -> str:
     _append_gather(response, action_url=gather_action_url)
     response.hangup()
     return str(response)
+
+
+def build_farewell_twiml(*, text: str) -> str:
+    response = VoiceResponse()
+    response.say(format_voice_response(text), voice=POLLY_VOICE)
+    response.hangup()
+    return str(response)
+
+
+_FAREWELL_PHRASES = (
+    "that's it",
+    "thats it",
+    "that's all",
+    "thats all",
+    "nothing else",
+    "no that's it",
+    "no thats it",
+    "no that's all",
+    "i'm good",
+    "im good",
+    "all set",
+    "goodbye",
+    "bye",
+    "talk later",
+    "hang up",
+)
+
+
+def is_farewell(text: str) -> bool:
+    lowered = text.lower().strip().rstrip(".!?")
+    if not lowered:
+        return False
+    return any(phrase in lowered for phrase in _FAREWELL_PHRASES)

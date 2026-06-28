@@ -14,6 +14,8 @@ from danu.db.repositories.task import TaskRepository
 from danu.memory.retrieve import MemoryRetriever
 from danu.memory.schemas import MemoryOp, MemoryOpType
 from danu.memory.store import MemoryStore
+from danu.onboarding.extract import extract_onboarding_ops
+from danu.onboarding.service import OnboardingService
 from danu.usage.tracker import UsageTracker
 
 
@@ -57,6 +59,16 @@ class AgentOrchestrator:
             metadata={"raw_payload": envelope.raw_payload},
         )
 
+        onboarding_svc = OnboardingService(self.session)
+        onboarding_state = onboarding_svc.load_state(
+            tenant_id=envelope.tenant_id,
+            user_id=envelope.user_id,
+        )
+        in_onboarding = onboarding_svc.needs_onboarding(
+            tenant_id=envelope.tenant_id,
+            user_id=envelope.user_id,
+        )
+
         context = self.retriever.retrieve(
             tenant_id=envelope.tenant_id,
             user_id=envelope.user_id,
@@ -65,11 +77,16 @@ class AgentOrchestrator:
         )
 
         llm_response = self.llm.complete(
-            system_prompt=build_system_prompt(channel=envelope.channel),
+            system_prompt=build_system_prompt(
+                channel=envelope.channel,
+                onboarding=onboarding_state,
+                in_onboarding=in_onboarding,
+            ),
             user_prompt=build_user_prompt(
                 user_message=envelope.body,
                 context=context,
                 channel=envelope.channel,
+                onboarding=onboarding_state if in_onboarding else None,
             ),
         )
         UsageTracker(self.session).record_llm_completion(
@@ -84,6 +101,9 @@ class AgentOrchestrator:
         )
 
         memory_ops = self._extract_memory_ops(envelope.body, llm_response.memory_ops)
+        if in_onboarding:
+            memory_ops.extend(extract_onboarding_ops(onboarding_state, envelope.body))
+
         if memory_ops:
             self.store.stage_memory_ops(
                 tenant_id=envelope.tenant_id,
@@ -92,6 +112,19 @@ class AgentOrchestrator:
                 ops=memory_ops,
                 channel=envelope.channel,
             )
+
+        if in_onboarding:
+            refreshed = onboarding_svc.load_state(
+                tenant_id=envelope.tenant_id,
+                user_id=envelope.user_id,
+            )
+            if refreshed.user_name and refreshed.agent_name and not refreshed.completed:
+                onboarding_svc.mark_completed(
+                    tenant_id=envelope.tenant_id,
+                    user_id=envelope.user_id,
+                    conversation_id=envelope.conversation_id,
+                    channel=envelope.channel,
+                )
 
         outbound = self.store.append_outbound(
             tenant_id=envelope.tenant_id,

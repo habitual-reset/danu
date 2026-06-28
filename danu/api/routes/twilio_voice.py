@@ -8,12 +8,15 @@ from sqlalchemy.orm import Session
 from danu.agent.orchestrator import AgentOrchestrator
 from danu.api.deps import TwilioVoiceContext, get_app_settings, get_db, get_twilio_voice_context
 from danu.channels.voice import (
+    build_farewell_twiml,
     build_gather_response_twiml,
     build_incoming_call_twiml,
     build_no_speech_twiml,
     build_voice_envelope,
+    is_farewell,
     parse_twilio_voice,
 )
+from danu.onboarding.service import OnboardingService
 from danu.config import Settings
 from danu.db.repositories.conversation import ConversationRepository
 from danu.usage.tracker import UsageTracker
@@ -37,12 +40,19 @@ async def incoming_voice(
         correlation_id=voice.params.get("CallSid"),
     )
 
+    onboarding = OnboardingService(session)
+    greeting = onboarding.voice_greeting(
+        tenant_id=settings.default_tenant_id,
+        user_id=voice.user_id,
+    )
+
     gather_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/gather")
     status_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/status")
     return Response(
         content=build_incoming_call_twiml(
             gather_action_url=gather_url,
             status_callback_url=status_url,
+            greeting=greeting,
         ),
         media_type="application/xml",
     )
@@ -91,6 +101,12 @@ async def voice_gather(
         )
         session.rollback()
         reply = "Something went wrong. Please try again."
+
+    if is_farewell(parsed["speech_result"]):
+        return Response(
+            content=build_farewell_twiml(text=reply),
+            media_type="application/xml",
+        )
 
     return Response(
         content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
