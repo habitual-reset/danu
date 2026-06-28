@@ -6,7 +6,15 @@ from twilio.twiml.voice_response import Gather, VoiceResponse
 
 from danu.channels.base import MessageEnvelope
 
-VOICE_MAX_CHARS = 500
+VOICE_MAX_CHARS = 280
+POLLY_VOICE = "Polly.Joanna-Neural"
+GATHER_KWARGS = {
+    "input": "speech",
+    "method": "POST",
+    "speech_timeout": "auto",
+    "language": "en-US",
+    "speech_model": "phone_call",
+}
 
 
 def parse_twilio_voice(payload: dict[str, Any]) -> dict[str, str]:
@@ -46,55 +54,36 @@ def format_voice_response(text: str, max_chars: int = VOICE_MAX_CHARS) -> str:
     return cleaned[: max_chars - 3].rsplit(" ", 1)[0] + "..."
 
 
+def _append_gather(response: VoiceResponse, *, action_url: str) -> None:
+    gather = Gather(action=action_url, **GATHER_KWARGS)
+    response.append(gather)
+
+
 def build_incoming_call_twiml(*, gather_action_url: str, status_callback_url: str | None = None) -> str:
     kwargs = {}
     if status_callback_url:
         kwargs["status_callback"] = status_callback_url
         kwargs["status_callback_event"] = "completed"
     response = VoiceResponse(**kwargs)
-    response.say("Hi. I'm your assistant. What can I help with?", voice="Polly.Joanna")
-    gather = Gather(
-        input="speech",
-        action=gather_action_url,
-        method="POST",
-        speech_timeout="auto",
-        language="en-US",
-    )
-    gather.say("I'm listening.", voice="Polly.Joanna")
-    response.append(gather)
-    response.say("I didn't hear anything. Goodbye.", voice="Polly.Joanna")
+    response.say("Hey, it's DANU. What's up?", voice=POLLY_VOICE)
+    _append_gather(response, action_url=gather_action_url)
+    response.say("Didn't catch that. Bye.", voice=POLLY_VOICE)
     response.hangup()
     return str(response)
 
 
 def build_gather_response_twiml(*, text: str, gather_action_url: str) -> str:
     response = VoiceResponse()
-    response.say(format_voice_response(text), voice="Polly.Joanna")
-    gather = Gather(
-        input="speech",
-        action=gather_action_url,
-        method="POST",
-        speech_timeout="auto",
-        language="en-US",
-    )
-    gather.say("Anything else?", voice="Polly.Joanna")
-    response.append(gather)
-    response.say("Okay, talk later.", voice="Polly.Joanna")
+    response.say(format_voice_response(text), voice=POLLY_VOICE)
+    _append_gather(response, action_url=gather_action_url)
+    response.say("Talk later.", voice=POLLY_VOICE)
     response.hangup()
     return str(response)
 
 
 def build_no_speech_twiml(*, gather_action_url: str) -> str:
     response = VoiceResponse()
-    response.say("Sorry, I didn't catch that.", voice="Polly.Joanna")
-    gather = Gather(
-        input="speech",
-        action=gather_action_url,
-        method="POST",
-        speech_timeout="auto",
-        language="en-US",
-    )
-    gather.say("Try again.", voice="Polly.Joanna")
-    response.append(gather)
+    response.say("Sorry, missed that.", voice=POLLY_VOICE)
+    _append_gather(response, action_url=gather_action_url)
     response.hangup()
     return str(response)

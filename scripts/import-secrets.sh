@@ -39,6 +39,8 @@ for line in drop.read_text().splitlines():
     if not value or "PASTE_YOUR" in value:
         continue
     updates[key] = value
+elif line.startswith("sk-"):
+    updates["OPENAI_API_KEY"] = line
 
 if not updates:
     raise SystemExit("No real keys found. Replace PASTE_YOUR_KEY_BELOW with your OpenAI key.")

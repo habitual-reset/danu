@@ -64,8 +64,12 @@ class AgentOrchestrator:
         )
 
         llm_response = self.llm.complete(
-            system_prompt=build_system_prompt(),
-            user_prompt=build_user_prompt(user_message=envelope.body, context=context),
+            system_prompt=build_system_prompt(channel=envelope.channel),
+            user_prompt=build_user_prompt(
+                user_message=envelope.body,
+                context=context,
+                channel=envelope.channel,
+            ),
         )
 
         memory_ops = self._extract_memory_ops(envelope.body, llm_response.memory_ops)

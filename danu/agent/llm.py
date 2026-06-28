@@ -48,3 +48,10 @@ def get_llm_client() -> LLMClient:
     if settings.openai_api_key:
         return OpenAILLMClient(settings.openai_api_key, settings.llm_model)
     return MockLLMClient()
+
+
+def get_consolidation_llm_client() -> LLMClient:
+    settings = get_settings()
+    if settings.openai_api_key:
+        return OpenAILLMClient(settings.openai_api_key, settings.llm_consolidation_model)
+    return MockLLMClient()

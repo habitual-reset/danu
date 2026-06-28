@@ -2,6 +2,7 @@ from danu.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from danu.db.models.conversation import Conversation
 from danu.db.models.event import Event
 from danu.db.models.memory import ConversationSummary, MemoryEmbedding, MemoryItem
+from danu.db.models.memory_graph import MemoryEntity, MemoryRelation
 from danu.db.models.message import Message
 from danu.db.models.sms_subscription import SmsSubscription
 from danu.db.models.task import Task
@@ -18,6 +19,8 @@ __all__ = [
     "MemoryItem",
     "ConversationSummary",
     "MemoryEmbedding",
+    "MemoryEntity",
+    "MemoryRelation",
     "SmsSubscription",
     "Task",
 ]
