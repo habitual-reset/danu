@@ -4,6 +4,7 @@
 !.env.example
 .secrets-drop
 secrets.drop
+PASTE_KEYS_HERE.txt
 
 # Python
 .venv/

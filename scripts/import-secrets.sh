@@ -1,29 +1,32 @@
 #!/usr/bin/env bash
-# Merge .secrets-drop into .env, then delete the drop file.
+# Merge secrets from a drop file into .env, then delete the drop file.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DROP="$ROOT/.secrets-drop"
-ENV="$ROOT/.env"
+cd "$ROOT"
 
-if [[ ! -f "$DROP" ]]; then
-  echo "No .secrets-drop file found."
-  echo "Create one: cp .secrets-drop.example .secrets-drop"
-  echo "Edit in TextEdit, save, then run this script again."
+if [[ -f "PASTE_KEYS_HERE.txt" ]]; then
+  DROP="PASTE_KEYS_HERE.txt"
+elif [[ -f ".secrets-drop" ]]; then
+  DROP=".secrets-drop"
+else
+  echo "No secrets file found."
+  echo ""
+  echo "Easiest: open this file in TextEdit, paste your key, save:"
+  echo "  $ROOT/PASTE_KEYS_HERE.txt"
+  echo ""
+  echo "Then say in chat: import my secrets file"
+  echo "Or run this script again."
   exit 1
 fi
 
-touch "$ENV"
-chmod 600 "$ENV" 2>/dev/null || true
+touch .env
+chmod 600 .env 2>/dev/null || true
 
-python3 <<'PY'
+python3 <<PY
 from pathlib import Path
 
-root = Path(__file__).resolve().parent.parent if False else Path(".")
-import os
-os.chdir("'"$ROOT"'")
-
-drop = Path(".secrets-drop")
+drop = Path("$DROP")
 env = Path(".env")
 
 updates: dict[str, str] = {}
@@ -33,24 +36,16 @@ for line in drop.read_text().splitlines():
         continue
     key, _, value = line.partition("=")
     key, value = key.strip(), value.strip()
-    if value:
-        updates[key] = value
+    if not value or "PASTE_YOUR" in value:
+        continue
+    updates[key] = value
 
 if not updates:
-    raise SystemExit("No key=value pairs found in .secrets-drop")
-
-existing: dict[str, str] = {}
-if env.exists():
-    for line in env.read_text().splitlines():
-        if "=" in line and not line.strip().startswith("#"):
-            k, _, v = line.partition("=")
-            existing[k.strip()] = v
-
-existing.update(updates)
+    raise SystemExit("No real keys found. Replace PASTE_YOUR_KEY_BELOW with your OpenAI key.")
 
 lines: list[str] = []
+seen: set[str] = set()
 if env.exists():
-    seen = set()
     for line in env.read_text().splitlines():
         if "=" in line and not line.strip().startswith("#"):
             k = line.split("=", 1)[0].strip()
@@ -59,14 +54,14 @@ if env.exists():
                 seen.add(k)
                 continue
         lines.append(line)
-    for k, v in updates.items():
-        if k not in seen:
-            lines.append(f"{k}={v}")
-else:
-    lines = [f"{k}={v}" for k, v in existing.items()]
+
+for k, v in updates.items():
+    if k not in seen:
+        lines.append(f"{k}={v}")
 
 env.write_text("\n".join(lines) + "\n")
 drop.unlink()
-print(f"Imported {len(updates)} secret(s) into .env and deleted .secrets-drop.")
-print("Keys imported:", ", ".join(updates.keys()))
+print(f"Imported {len(updates)} secret(s) into .env")
+print("Imported keys:", ", ".join(updates.keys()))
+print("Deleted", "$DROP")
 PY

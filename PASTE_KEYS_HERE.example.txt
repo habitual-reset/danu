@@ -1,0 +1,12 @@
+# INSTRUCTIONS
+# 1. Duplicate this file and name the copy: PASTE_KEYS_HERE.txt
+#    (Or just edit PASTE_KEYS_HERE.txt if it already exists.)
+# 2. Replace PASTE_YOUR_KEY_BELOW with your real OpenAI key (starts with sk-)
+# 3. Save the file
+# 4. In chat, tell the agent: "import my secrets file"
+#
+# Do NOT paste keys in chat. This file is gitignored and deleted after import.
+
+OPENAI_API_KEY=PASTE_YOUR_KEY_BELOW
+LLM_MODEL=gpt-4.1-mini
+LLM_CONSOLIDATION_MODEL=gpt-4.1
