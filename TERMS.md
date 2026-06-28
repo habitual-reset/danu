@@ -3,7 +3,7 @@
 **Last updated:** June 28, 2026
 
 **Operator:** DANU (sole proprietorship — personal AI assistant project)  
-**Contact:** habitual-reset@users.noreply.github.com (or open an issue at the project repository)
+**Contact:** journey@habitualreset.com
 
 By texting or calling the DANU assistant, you agree to these Terms.
 
@@ -55,4 +55,4 @@ We may update these Terms as the Service matures (including a future consumer-fa
 
 ## 11. Contact
 
-Questions about these Terms: open an issue in the DANU GitHub repository or contact the operator through the channels listed above.
+Questions about these Terms: email **journey@habitualreset.com**.

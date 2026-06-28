@@ -51,10 +51,14 @@ python -m danu.tasks.worker
 
 Public policy documents for carrier registration:
 
+- [Program disclosure](COMPLIANCE.md) — use as **embedded link / website** in Twilio
 - [Privacy Policy](PRIVACY.md)
 - [Terms of Service](TERMS.md)
+- [Twilio copy-paste reference](TWILIO_CAMPAIGN.md) — sample messages + exact URLs
 
-After pushing to GitHub, use the raw or blob URLs in your Twilio Trust Hub / campaign registration.
+**Contact:** journey@habitualreset.com
+
+After pushing to `github.com/habitual-reset/DANU`, use the URLs in `TWILIO_CAMPAIGN.md` for Trust Hub registration.
 
 ## Project Layout
 

@@ -3,7 +3,7 @@
 **Last updated:** June 28, 2026
 
 **Operator:** DANU (sole proprietorship — personal AI assistant project)  
-**Contact:** habitual-reset@users.noreply.github.com (or open an issue at the project repository)
+**Contact:** journey@habitualreset.com
 
 This Privacy Policy describes how DANU ("we," "us," or "the Service") handles information when you interact with the assistant by SMS or voice call.
 
@@ -69,4 +69,4 @@ We may update this policy as the Service evolves (including if it becomes consum
 
 ## Contact
 
-Questions about this policy: open an issue in the DANU GitHub repository or contact the operator through the channels listed above.
+Questions about this policy: email **journey@habitualreset.com**.
