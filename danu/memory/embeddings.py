@@ -5,8 +5,16 @@ from __future__ import annotations
 import hashlib
 import math
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from danu.config import get_settings
+
+
+@dataclass
+class EmbeddingResult:
+    vector: list[float]
+    model: str = ""
+    total_tokens: int = 0
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -22,7 +30,7 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
 
 class EmbeddingBackend(ABC):
     @abstractmethod
-    def embed(self, text: str) -> list[float]:
+    def embed(self, text: str) -> EmbeddingResult:
         raise NotImplementedError
 
 
@@ -32,11 +40,11 @@ class StubEmbeddingBackend(EmbeddingBackend):
     def __init__(self, dimensions: int = 64) -> None:
         self.dimensions = dimensions
 
-    def embed(self, text: str) -> list[float]:
+    def embed(self, text: str) -> EmbeddingResult:
         digest = hashlib.sha256(text.encode("utf-8")).digest()
         values = [digest[i % len(digest)] / 255.0 for i in range(self.dimensions)]
         norm = math.sqrt(sum(v * v for v in values)) or 1.0
-        return [v / norm for v in values]
+        return EmbeddingResult(vector=[v / norm for v in values])
 
 
 class OpenAIEmbeddingBackend(EmbeddingBackend):
@@ -46,12 +54,17 @@ class OpenAIEmbeddingBackend(EmbeddingBackend):
         self.client = OpenAI(api_key=api_key)
         self.model = model
 
-    def embed(self, text: str) -> list[float]:
+    def embed(self, text: str) -> EmbeddingResult:
         response = self.client.embeddings.create(
             model=self.model,
             input=text,
         )
-        return list(response.data[0].embedding)
+        usage = response.usage
+        return EmbeddingResult(
+            vector=list(response.data[0].embedding),
+            model=self.model,
+            total_tokens=usage.total_tokens if usage else 0,
+        )
 
 
 def get_embedding_backend() -> EmbeddingBackend:

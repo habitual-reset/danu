@@ -6,6 +6,7 @@ from danu.db.repositories.event import EventRepository
 from danu.db.repositories.memory import MemoryRepository
 from danu.db.repositories.message import MessageRepository
 from danu.memory.embeddings import get_embedding_backend
+from danu.usage.tracker import UsageTracker
 from danu.memory.schemas import MemoryOp, MemoryOpType, ProposedMemory
 
 
@@ -139,14 +140,21 @@ class MemoryStore:
         )
 
         chunk_text = f"{op.category}:{op.key} {op.value}"
-        embedding = self.embeddings.embed(chunk_text)
+        embedding_result = self.embeddings.embed(chunk_text)
         self.memory.upsert_embedding(
             tenant_id=tenant_id,
             user_id=user_id,
             source_type="memory_item",
             source_id=item.id,
             chunk_text=chunk_text,
-            embedding=embedding,
+            embedding=embedding_result.vector,
+        )
+        UsageTracker(self.session).record_embedding(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            model=embedding_result.model or "text-embedding-3-small",
+            total_tokens=embedding_result.total_tokens,
+            purpose="memory_commit",
         )
 
         commit_event = self.events.append(

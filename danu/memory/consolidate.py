@@ -14,6 +14,7 @@ from danu.db.repositories.memory_graph import MemoryGraphRepository
 from danu.db.repositories.message import MessageRepository
 from danu.memory.schemas import MemoryOp, MemoryOpType
 from danu.memory.store import MemoryStore
+from danu.usage.tracker import UsageTracker
 
 
 class MemoryConsolidator:
@@ -39,7 +40,12 @@ class MemoryConsolidator:
             return None
 
         transcript = "\n".join(f"{msg.role}: {msg.content}" for msg in messages)
-        summary, facts, entities, relations = self._llm_extract(transcript)
+        summary, facts, entities, relations = self._llm_extract(
+            transcript,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )
 
         if not summary:
             summary = "Conversation summary:\n" + "\n".join(
@@ -140,7 +146,14 @@ class MemoryConsolidator:
                 source_event_id="consolidation",
             )
 
-    def _llm_extract(self, transcript: str) -> tuple[str, list[dict], list[dict], list[dict]]:
+    def _llm_extract(
+        self,
+        transcript: str,
+        *,
+        tenant_id: str,
+        user_id: str,
+        conversation_id: str,
+    ) -> tuple[str, list[dict], list[dict], list[dict]]:
         system = (
             "You extract durable memory from conversations. "
             "Return ONLY valid JSON with keys: summary (string), facts (array), "
@@ -156,6 +169,15 @@ class MemoryConsolidator:
 
         try:
             response = self.llm.complete(system_prompt=system, user_prompt=user)
+            UsageTracker(self.session).record_llm_completion(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                model=response.model,
+                prompt_tokens=response.prompt_tokens,
+                completion_tokens=response.completion_tokens,
+                conversation_id=conversation_id,
+                purpose="consolidation",
+            )
             return self._parse_extraction(response.content)
         except Exception:
             return "", [], [], []

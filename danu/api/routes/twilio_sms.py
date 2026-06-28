@@ -17,6 +17,7 @@ from danu.channels.sms_keywords import (
 )
 from danu.config import Settings
 from danu.db.repositories.sms_subscription import SmsSubscriptionRepository
+from danu.usage.tracker import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -90,5 +91,27 @@ async def inbound_sms(
         )
         session.rollback()
         reply = "Something went wrong on my end. Please try again in a moment."
+
+    segments_raw = sms.params.get("NumSegments", "1")
+    try:
+        segments = int(segments_raw)
+    except ValueError:
+        segments = 1
+
+    UsageTracker(session).record_twilio_sms(
+        tenant_id=settings.default_tenant_id,
+        user_id=sms.user_id,
+        segments=segments,
+        conversation_id=conversation_id,
+        message_sid=parsed.get("message_sid"),
+        direction="inbound",
+    )
+    UsageTracker(session).record_twilio_sms(
+        tenant_id=settings.default_tenant_id,
+        user_id=sms.user_id,
+        segments=max(1, (len(reply) + 159) // 160),
+        conversation_id=conversation_id,
+        direction="outbound",
+    )
 
     return Response(content=build_twiml_response(reply), media_type="application/xml")

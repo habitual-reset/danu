@@ -11,6 +11,9 @@ class LLMResponse:
     content: str
     memory_ops: list[dict] = field(default_factory=list)
     tool_calls: list[dict] = field(default_factory=list)
+    model: str = ""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
 
 
 class LLMClient(ABC):
@@ -40,7 +43,13 @@ class OpenAILLMClient(LLMClient):
             ],
         )
         content = response.choices[0].message.content or ""
-        return LLMResponse(content=content)
+        usage = response.usage
+        return LLMResponse(
+            content=content,
+            model=self.model,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
+        )
 
 
 def get_llm_client() -> LLMClient:

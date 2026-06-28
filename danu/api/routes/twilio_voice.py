@@ -16,6 +16,7 @@ from danu.channels.voice import (
 )
 from danu.config import Settings
 from danu.db.repositories.conversation import ConversationRepository
+from danu.usage.tracker import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,25 @@ async def voice_status(
     if conversation is None:
         return Response(status_code=204)
 
+    duration_raw = voice.params.get("CallDuration", "0")
+    try:
+        duration_seconds = int(duration_raw)
+    except ValueError:
+        duration_seconds = 0
+
+    UsageTracker(session).record_twilio_voice(
+        tenant_id=conversation.tenant_id,
+        user_id=conversation.user_id,
+        duration_seconds=duration_seconds,
+        conversation_id=conversation.id,
+        call_sid=call_sid,
+    )
+
     orchestrator = AgentOrchestrator(session)
     orchestrator.close_conversation(conversation.id)
-    logger.info("Voice call completed; consolidation queued for %s", conversation.id)
+    logger.info(
+        "Voice call completed (%ss); consolidation queued for %s",
+        duration_seconds,
+        conversation.id,
+    )
     return Response(status_code=204)

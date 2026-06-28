@@ -14,6 +14,7 @@ from danu.db.repositories.task import TaskRepository
 from danu.memory.retrieve import MemoryRetriever
 from danu.memory.schemas import MemoryOp, MemoryOpType
 from danu.memory.store import MemoryStore
+from danu.usage.tracker import UsageTracker
 
 
 @dataclass
@@ -70,6 +71,16 @@ class AgentOrchestrator:
                 context=context,
                 channel=envelope.channel,
             ),
+        )
+        UsageTracker(self.session).record_llm_completion(
+            tenant_id=envelope.tenant_id,
+            user_id=envelope.user_id,
+            model=llm_response.model or self.settings.llm_model,
+            prompt_tokens=llm_response.prompt_tokens,
+            completion_tokens=llm_response.completion_tokens,
+            conversation_id=envelope.conversation_id,
+            correlation_id=envelope.correlation_id,
+            purpose=f"turn_{envelope.channel}",
         )
 
         memory_ops = self._extract_memory_ops(envelope.body, llm_response.memory_ops)

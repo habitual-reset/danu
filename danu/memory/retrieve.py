@@ -7,6 +7,7 @@ from danu.db.models.memory import MemoryItem
 from danu.db.repositories.memory import MemoryRepository
 from danu.db.repositories.message import MessageRepository
 from danu.memory.embeddings import get_embedding_backend, rank_by_similarity
+from danu.usage.tracker import UsageTracker
 from danu.memory.schemas import ContextPack, ConversationMessage, MemoryFact
 
 
@@ -50,6 +51,7 @@ class MemoryRetriever:
         semantic_hits = self._semantic_search(
             tenant_id=tenant_id,
             user_id=user_id,
+            conversation_id=conversation_id,
             query=query,
         )
 
@@ -81,15 +83,31 @@ class MemoryRetriever:
         pack.token_estimate = self._estimate_tokens(pack)
         return self._trim_to_budget(pack, budget)
 
-    def _semantic_search(self, *, tenant_id: str, user_id: str, query: str) -> list[MemoryFact]:
+    def _semantic_search(
+        self,
+        *,
+        tenant_id: str,
+        user_id: str,
+        conversation_id: str,
+        query: str,
+    ) -> list[MemoryFact]:
         rows = self.memory.list_embeddings(tenant_id=tenant_id, user_id=user_id)
         if not rows:
             return []
 
-        query_embedding = self.embeddings.embed(query)
+        embedding_result = self.embeddings.embed(query)
+        if embedding_result.total_tokens > 0:
+            UsageTracker(self.session).record_embedding(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                model=embedding_result.model or "text-embedding-3-small",
+                total_tokens=embedding_result.total_tokens,
+                conversation_id=conversation_id,
+                purpose="memory_retrieve",
+            )
         candidates = [(row.source_id, row.embedding_json, row.chunk_text) for row in rows]
         ranked = rank_by_similarity(
-            query_embedding,
+            embedding_result.vector,
             candidates,
             top_k=self.settings.memory_semantic_top_k,
         )
