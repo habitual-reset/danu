@@ -15,6 +15,7 @@ from danu.channels.voice import (
     parse_twilio_voice,
 )
 from danu.config import Settings
+from danu.db.repositories.conversation import ConversationRepository
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,12 @@ async def incoming_voice(
     )
 
     gather_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/gather")
+    status_url = settings.twilio_webhook_url_for("/webhooks/twilio/voice/status")
     return Response(
-        content=build_incoming_call_twiml(gather_action_url=gather_url),
+        content=build_incoming_call_twiml(
+            gather_action_url=gather_url,
+            status_callback_url=status_url,
+        ),
         media_type="application/xml",
     )
 
@@ -90,3 +95,25 @@ async def voice_gather(
         content=build_gather_response_twiml(text=reply, gather_action_url=gather_url),
         media_type="application/xml",
     )
+
+
+@router.post("/voice/status")
+async def voice_status(
+    voice: TwilioVoiceContext = Depends(get_twilio_voice_context),
+    session: Session = Depends(get_db),
+) -> Response:
+    call_status = voice.params.get("CallStatus", "").strip().lower()
+    call_sid = voice.params.get("CallSid", "").strip()
+
+    if call_status != "completed" or not call_sid:
+        return Response(status_code=204)
+
+    conversations = ConversationRepository(session)
+    conversation = conversations.get_by_correlation_id(call_sid)
+    if conversation is None:
+        return Response(status_code=204)
+
+    orchestrator = AgentOrchestrator(session)
+    orchestrator.close_conversation(conversation.id)
+    logger.info("Voice call completed; consolidation queued for %s", conversation.id)
+    return Response(status_code=204)

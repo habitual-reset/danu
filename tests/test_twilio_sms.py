@@ -110,6 +110,34 @@ def test_inbound_sms_validates_signature_when_auth_token_set(sms_client, monkeyp
     assert "Signed message" in signed.text
 
 
+def test_inbound_sms_stop_keyword(sms_client):
+    response = _post_sms(
+        sms_client,
+        {
+            "From": "+15555550100",
+            "To": "+15555550200",
+            "Body": "STOP",
+            "MessageSid": "SMSTOP",
+        },
+    )
+    assert response.status_code == 200
+    assert "unsubscribed" in response.text.lower()
+
+
+def test_inbound_sms_help_keyword(sms_client):
+    response = _post_sms(
+        sms_client,
+        {
+            "From": "+15555550100",
+            "To": "+15555550200",
+            "Body": "HELP",
+            "MessageSid": "SMHELP",
+        },
+    )
+    assert response.status_code == 200
+    assert "journey@habitualreset.com" in response.text
+
+
 def test_inbound_sms_handles_empty_body(sms_client):
     response = _post_sms(
         sms_client,

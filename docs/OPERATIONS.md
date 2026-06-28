@@ -26,7 +26,7 @@ Items surfaced during SMS/Twilio unblock work. Priority order.
 ### High (do soon)
 
 - [ ] **Rotate Twilio Auth Token** if it was ever pasted in chat; update `.env` only
-- [ ] **Implement STOP / HELP / START** SMS handlers (required by campaign + carrier compliance)
+- [x] **Implement STOP / HELP / START** SMS handlers (required by campaign + carrier compliance)
 - [ ] **Stable public URL for compliance docs** before making repo private (see below)
 - [ ] **Replace ephemeral Cloudflare tunnel URL** with ngrok authtoken or named Cloudflare tunnel for dev
 - [ ] **Never commit `.env`** — verify before each push (`git status`, `.gitignore`)
@@ -35,7 +35,7 @@ Items surfaced during SMS/Twilio unblock work. Priority order.
 
 - [ ] **Per-tenant LLM keys (BYOK)** — encrypted in DB, not env vars
 - [ ] **Rate limiting** on webhooks (per phone number)
-- [ ] **Hangup → memory consolidation** for voice calls
+- [x] **Hangup → memory consolidation** for voice calls (status callback)
 - [ ] **Audit log review** — ensure tool calls and memory commits are traceable
 - [ ] **HTTPS only** in production (no tunnel in prod; deploy to Fly/Railway/etc.)
 
@@ -96,7 +96,7 @@ Cron example (daily, only if changes):
 - [x] GitHub links live for Trust Hub
 - [x] Campaign opt-in keywords + message submitted
 - [ ] Campaign **approved**
-- [ ] STOP/HELP handlers in code
+- [x] STOP/HELP/START handlers in code
 - [ ] Test SMS E2E after approval
 - [ ] Update Twilio webhook if tunnel URL changes
 

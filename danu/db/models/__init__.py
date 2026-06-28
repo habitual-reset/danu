@@ -3,6 +3,7 @@ from danu.db.models.conversation import Conversation
 from danu.db.models.event import Event
 from danu.db.models.memory import ConversationSummary, MemoryEmbedding, MemoryItem
 from danu.db.models.message import Message
+from danu.db.models.sms_subscription import SmsSubscription
 from danu.db.models.task import Task
 from danu.db.models.user import User
 
@@ -17,5 +18,6 @@ __all__ = [
     "MemoryItem",
     "ConversationSummary",
     "MemoryEmbedding",
+    "SmsSubscription",
     "Task",
 ]

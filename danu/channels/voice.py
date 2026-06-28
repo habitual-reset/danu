@@ -46,8 +46,12 @@ def format_voice_response(text: str, max_chars: int = VOICE_MAX_CHARS) -> str:
     return cleaned[: max_chars - 3].rsplit(" ", 1)[0] + "..."
 
 
-def build_incoming_call_twiml(*, gather_action_url: str) -> str:
-    response = VoiceResponse()
+def build_incoming_call_twiml(*, gather_action_url: str, status_callback_url: str | None = None) -> str:
+    kwargs = {}
+    if status_callback_url:
+        kwargs["status_callback"] = status_callback_url
+        kwargs["status_callback_event"] = "completed"
+    response = VoiceResponse(**kwargs)
     response.say("Hi. I'm your assistant. What can I help with?", voice="Polly.Joanna")
     gather = Gather(
         input="speech",
